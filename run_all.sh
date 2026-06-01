@@ -10,6 +10,6 @@ do
   python run_backtest.py --symbol "$ASSET" --period "$PERIOD" --interval "$INTERVAL" --benchmark "$BENCHMARK" --strategies strategies --out results
 done
 
-python build_dashboard.py --results results --out dashboard.html
+python build_dashboard.py --results results --mode assets
 
 echo "Done."
