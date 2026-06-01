@@ -1,4 +1,4 @@
-# Backtrader Strategy Automation Suite - User Guide
+# Backtrader Strategy Automation
 
 This guide explains how to install, run, customize, and review results from the Backtrader Strategy Automation Suite.
 
@@ -367,25 +367,6 @@ Use:
 python run_backtest.py --symbol AAPL --period 1y --verbose
 ```
 
-## Distribution Notes
 
-For distribution, include:
 
-```text
-strategies/
-results/.gitkeep
-run_backtest.py
-build_dashboard.py
-run_all.bat
-run_all.sh
-requirements.txt
-README.md
-USER_GUIDE.md
-.gitignore
-```
-
-Do not include generated result folders, old dashboards, cache files, or private test data.
-
-## Disclaimer
-
-This software is for research and educational use. It is not financial advice, investment advice, or a guarantee of trading performance. Backtest results can be misleading and may not reflect live trading performance. Users are responsible for validating strategies, data, costs, risk, and suitability before making any trading decisions.
+This code package is for research and educational use. It is not financial advice, investment advice, or a guarantee of trading performance. Backtest results can be misleading and may not reflect live trading performance. Users are responsible for validating strategies, data, costs, risk, and suitability before making any trading decisions.
