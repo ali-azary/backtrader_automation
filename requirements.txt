@@ -1,0 +1,6 @@
+backtrader
+yfinance
+pandas
+matplotlib
+plotly
+jinja2
