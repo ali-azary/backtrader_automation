@@ -61,7 +61,7 @@ bash run_all.sh
 ## Build The Dashboard
 
 ```bash
-python build_dashboard.py --results results 
+python build_dashboard.py --results results --mode assets
 ```
 
 ## Outputs
