@@ -98,7 +98,10 @@ python run_backtest.py --symbol BTC-USD --start 2022-01-01 --end 2025-01-01 --in
 --strategies   Strategy folder. Default is strategies.
 --cash         Starting cash. Default is 10000.
 --commission   Broker commission rate. Default is 0.001.
+--stake-percent Percent of available cash used by the default sizer. Default is 95.
+--risk-free-rate Annual risk-free rate used for Sharpe. Default is 0.0.
 --out          Output folder. Default is results.
+--allow-short  Allow strategies to open short positions. Default is long-only.
 --strict       Stop immediately if a strategy errors.
 --verbose      Show strategy print/log output.
 ```
@@ -133,7 +136,10 @@ You can also change:
 PERIOD=2y
 INTERVAL=1d
 BENCHMARK=SPY
+STAKE_PERCENT=95
 ```
+
+`STAKE_PERCENT` is important for high-priced assets such as `BTC-USD`; it lets the system buy fractional position sizes instead of trying to buy one full coin/share.
 
 ## Output Files
 
@@ -184,6 +190,8 @@ win_rate_pct
 ```
 
 Each symbol also gets `all_metrics.csv`, which combines all strategy metrics for that symbol.
+
+Sharpe is calculated from the saved strategy equity curve, annualized from the actual date spacing in `equity.csv`. This avoids misleading values from Backtrader's built-in Sharpe analyzer when crypto trades daily, when strategies sit flat for long periods, or when return streams have near-zero volatility.
 
 ## Saved Plots
 
@@ -316,6 +324,18 @@ Use different starting cash:
 
 ```bash
 python run_backtest.py --symbol AAPL --period 2y --cash 50000
+```
+
+Run BTC-USD with fractional sizing:
+
+```bash
+python run_backtest.py --symbol BTC-USD --period 2y --benchmark BTC-USD --stake-percent 95
+```
+
+Allow short entries only when you intentionally want long/short behavior:
+
+```bash
+python run_backtest.py --symbol BTC-USD --period 2y --allow-short
 ```
 
 Use a lower commission:

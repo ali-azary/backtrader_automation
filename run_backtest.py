@@ -37,6 +37,31 @@ def disable_interactive_plotting():
 disable_interactive_plotting()
 
 
+def enable_long_only_orders():
+    original_buy = bt.Strategy.buy
+    original_sell = bt.Strategy.sell
+
+    def long_only_buy(self, *args, **kwargs):
+        if self.position.size < 0:
+            size = kwargs.get("size")
+            if size is None or size > abs(self.position.size):
+                kwargs["size"] = abs(self.position.size)
+        return original_buy(self, *args, **kwargs)
+
+    def long_only_sell(self, *args, **kwargs):
+        if self.position.size <= 0:
+            return None
+
+        size = kwargs.get("size")
+        if size is None or size > self.position.size:
+            kwargs["size"] = self.position.size
+
+        return original_sell(self, *args, **kwargs)
+
+    bt.Strategy.buy = long_only_buy
+    bt.Strategy.sell = long_only_sell
+
+
 @contextlib.contextmanager
 def maybe_suppress_output(verbose):
     if verbose:
@@ -108,6 +133,40 @@ def download_price_data(symbol, args):
 def drawdown_pct(series):
     peak = series.cummax()
     return (series / peak - 1) * 100
+
+
+def annualization_factor(dates):
+    dates = pd.to_datetime(pd.Series(dates)).dropna().sort_values()
+    if len(dates) < 2:
+        return 252.0
+
+    elapsed_days = (dates.iloc[-1] - dates.iloc[0]).total_seconds() / 86400
+    if elapsed_days <= 0:
+        return 252.0
+
+    periods_per_year = (len(dates) - 1) / (elapsed_days / 365.25)
+    return max(periods_per_year, 1.0)
+
+
+def calculate_sharpe(equity, risk_free_rate=0.0):
+    if equity.empty or "equity" not in equity:
+        return None
+
+    returns = pd.to_numeric(equity["equity"], errors="coerce").pct_change()
+    returns = returns.replace([float("inf"), float("-inf")], pd.NA).dropna()
+
+    if len(returns) < 2:
+        return None
+
+    periods_per_year = annualization_factor(equity["date"])
+    period_risk_free = (1 + risk_free_rate) ** (1 / periods_per_year) - 1
+    excess_returns = returns - period_risk_free
+    volatility = excess_returns.std(ddof=1)
+
+    if pd.isna(volatility) or volatility == 0:
+        return None
+
+    return (excess_returns.mean() / volatility) * (periods_per_year ** 0.5)
 
 
 def save_backtest_plots(equity, data, benchmark_data, args, strategy_name, run_dir):
@@ -235,10 +294,16 @@ parser.add_argument("--benchmark", default="SPY")
 parser.add_argument("--strategies", default="strategies")
 parser.add_argument("--cash", type=float, default=10000)
 parser.add_argument("--commission", type=float, default=0.001)
+parser.add_argument("--stake-percent", type=float, default=95.0)
+parser.add_argument("--risk-free-rate", type=float, default=0.0)
 parser.add_argument("--out", default="results")
+parser.add_argument("--allow-short", action="store_true")
 parser.add_argument("--strict", action="store_true")
 parser.add_argument("--verbose", action="store_true")
 args = parser.parse_args()
+
+if not args.allow_short:
+    enable_long_only_orders()
 
 symbol_safe = args.symbol.replace("/", "_").replace("=", "_")
 out_root = Path(args.out) / symbol_safe
@@ -314,12 +379,12 @@ for strategy_file in Path(args.strategies).glob("*.py"):
             cerebro = bt.Cerebro()
             cerebro.broker.setcash(args.cash)
             cerebro.broker.setcommission(commission=args.commission)
+            cerebro.addsizer(bt.sizers.PercentSizer, percents=args.stake_percent)
 
             feed = bt.feeds.PandasData(dataname=data)
             cerebro.adddata(feed)
             cerebro.addstrategy(strategy_class)
 
-            cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
             cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
             cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="trades")
             cerebro.addanalyzer(EquityAnalyzer, _name="equity")
@@ -342,7 +407,6 @@ for strategy_file in Path(args.strategies).glob("*.py"):
         final_value = cerebro.broker.getvalue()
         total_return_pct = (final_value / args.cash - 1) * 100
 
-        sharpe = result.analyzers.sharpe.get_analysis().get("sharperatio", None)
         drawdown = result.analyzers.drawdown.get_analysis()
         max_drawdown_pct = drawdown.get("max", {}).get("drawdown", None)
 
@@ -361,6 +425,7 @@ for strategy_file in Path(args.strategies).glob("*.py"):
                 }
             )
         equity.to_csv(run_dir / "equity.csv", index=False)
+        sharpe = calculate_sharpe(equity, risk_free_rate=args.risk_free_rate)
 
         try:
             benchmark_return_pct, asset_buy_hold_return_pct = save_backtest_plots(
