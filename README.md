@@ -9,6 +9,34 @@ Get the Mega Backtrader Strategy Pack here:
 
 https://www.pyquantlab.com/bundles/Mega%20Backtrader%20Strategy%20Pack.html
 
+## Try The Included Demo Strategies
+
+The repository includes four standalone sample strategies so you can run the
+complete workflow before adding your own files or upgrading to the full pack.
+
+| Demo | Style | What it demonstrates |
+| --- | --- | --- |
+| `DemoEmaCrossover` | Trend following | EMA signals with an ATR trailing exit |
+| `DemoVwapReversion` | Mean reversion | Rolling VWAP, trend context, and an ATR trail |
+| `DemoDonchianBreakout` | Breakout | Channel highs, a trend filter, and volatility risk |
+| `DemoHeikinAshiTrend` | Price transformation | Smoothed candles and a percentage trail |
+
+All four demos are intentionally long-only and use only the dependencies in
+`requirements.txt`. They are educational examples, not recommendations or
+claims of future performance.
+
+Run every included demo on AAPL:
+
+```bash
+python run_backtest.py --symbol AAPL --period 2y --interval 1d --benchmark SPY
+python build_dashboard.py --results results --mode assets
+```
+
+When you are ready to test a much wider range of trend, momentum, reversal,
+breakout, volatility, and regime ideas, add the 500+ strategy files from the
+[Mega Backtrader Strategy Pack](https://www.pyquantlab.com/bundles/Mega%20Backtrader%20Strategy%20Pack.html)
+to the same `strategies/` folder.
+
 ## Why This Exists
 
 The Mega Backtrader Strategy Pack includes a large collection of ready-to-use Backtrader strategies.
